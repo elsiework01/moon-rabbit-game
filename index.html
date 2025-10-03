@@ -84,6 +84,7 @@
             position: absolute;
             bottom: 0;
             left: 7.5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
         .rabbit-ear {
@@ -93,6 +94,7 @@
             border-radius: 10px 10px 0 0;
             position: absolute;
             top: -5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
 
         .rabbit-ear.left {
@@ -110,6 +112,7 @@
             bottom: 12px;
             left: 50%;
             transform: translateX(-50%);
+            width: 100%;
         }
 
         .rabbit-eye {
@@ -299,14 +302,6 @@
             padding: 0 20px;
             line-height: 1.8;
         }
-
-        .title-icon {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            vertical-align: middle;
-            margin: 0 5px;
-        }
     </style>
 </head>
 <body>
@@ -353,7 +348,8 @@
         let gameRunning = false;
         let timerInterval;
         let spawnInterval;
-        let rabbit;
+        let animationId;
+        let rabbit = null;
         let rabbitX;
         let touchStartX = 0;
         let fallingItems = [];
@@ -361,6 +357,7 @@
         // 創建星星背景
         function createStars() {
             const starsContainer = document.getElementById('stars');
+            starsContainer.innerHTML = '';
             for (let i = 0; i < 50; i++) {
                 const star = document.createElement('div');
                 star.className = 'star';
@@ -378,17 +375,35 @@
             const rabbitDiv = document.createElement('div');
             rabbitDiv.className = 'rabbit';
             
-            rabbitDiv.innerHTML = `
-                <div class="rabbit-ear left"></div>
-                <div class="rabbit-ear right"></div>
-                <div class="rabbit-body">
-                    <div class="rabbit-face">
-                        <div class="rabbit-eye left"></div>
-                        <div class="rabbit-eye right"></div>
-                        <div class="rabbit-nose"></div>
-                    </div>
-                </div>
-            `;
+            const earLeft = document.createElement('div');
+            earLeft.className = 'rabbit-ear left';
+            
+            const earRight = document.createElement('div');
+            earRight.className = 'rabbit-ear right';
+            
+            const body = document.createElement('div');
+            body.className = 'rabbit-body';
+            
+            const face = document.createElement('div');
+            face.className = 'rabbit-face';
+            
+            const eyeLeft = document.createElement('div');
+            eyeLeft.className = 'rabbit-eye left';
+            
+            const eyeRight = document.createElement('div');
+            eyeRight.className = 'rabbit-eye right';
+            
+            const nose = document.createElement('div');
+            nose.className = 'rabbit-nose';
+            
+            face.appendChild(eyeLeft);
+            face.appendChild(eyeRight);
+            face.appendChild(nose);
+            body.appendChild(face);
+            
+            rabbitDiv.appendChild(earLeft);
+            rabbitDiv.appendChild(earRight);
+            rabbitDiv.appendChild(body);
             
             return rabbitDiv;
         }
@@ -402,22 +417,32 @@
             gameOverEl.style.display = 'none';
             
             // 清除所有掉落物
-            fallingItems.forEach(item => item.element.remove());
+            fallingItems.forEach(item => {
+                if (item.element && item.element.parentNode) {
+                    item.element.remove();
+                }
+            });
             fallingItems = [];
 
-            // 創建或重置兔子
-            if (!rabbit) {
-                rabbit = createRabbit();
-                canvas.appendChild(rabbit);
+            // 移除舊兔子
+            if (rabbit && rabbit.parentNode) {
+                rabbit.remove();
             }
+            
+            // 創建新兔子
+            rabbit = createRabbit();
+            canvas.appendChild(rabbit);
             
             rabbitX = window.innerWidth / 2 - 25;
             rabbit.style.left = rabbitX + 'px';
             rabbit.style.bottom = '20px';
+            
+            console.log('兔子已創建，位置：', rabbitX);
         }
 
         // 開始遊戲
         function startGame() {
+            console.log('遊戲開始');
             startScreen.style.display = 'none';
             gameRunning = true;
             initGame();
@@ -433,51 +458,63 @@
             }, 1000);
 
             // 生成掉落物
-            spawnInterval = setInterval(spawnItem, 800);
+            spawnInterval = setInterval(() => {
+                spawnItem();
+            }, 800);
+            
+            // 立即生成第一個物品
+            spawnItem();
+            
+            // 開始遊戲循環
+            gameLoop();
         }
 
         // 生成掉落物
         function spawnItem() {
             if (!gameRunning) return;
 
-            const item = document.createElement('div');
-            item.className = 'falling-item';
+            const itemWrapper = document.createElement('div');
+            itemWrapper.className = 'falling-item';
             
-            const isMooncake = Math.random() > 0.3; // 70% 月餅，30% 石頭
+            const isMooncake = Math.random() > 0.3;
             
-            if (isMooncake) {
-                const mooncake = document.createElement('div');
-                mooncake.className = 'mooncake';
-                item.appendChild(mooncake);
-                item.dataset.type = 'mooncake';
-            } else {
-                const rock = document.createElement('div');
-                rock.className = 'rock';
-                item.appendChild(rock);
-                item.dataset.type = 'rock';
-            }
+            const itemDiv = document.createElement('div');
+            itemDiv.className = isMooncake ? 'mooncake' : 'rock';
+            itemWrapper.appendChild(itemDiv);
+            itemWrapper.dataset.type = isMooncake ? 'mooncake' : 'rock';
             
             const x = Math.random() * (window.innerWidth - 40);
-            item.style.left = x + 'px';
-            item.style.top = '-40px';
+            itemWrapper.style.left = x + 'px';
+            itemWrapper.style.top = '-40px';
             
-            canvas.appendChild(item);
+            canvas.appendChild(itemWrapper);
             
             const itemObj = {
-                element: item,
+                element: itemWrapper,
                 x: x,
                 y: -40,
-                type: item.dataset.type
+                type: isMooncake ? 'mooncake' : 'rock'
             };
             
             fallingItems.push(itemObj);
+            console.log('生成物品：', itemObj.type, '位置：', x);
         }
 
         // 遊戲循環
         function gameLoop() {
-            if (!gameRunning) return;
+            if (!gameRunning) {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                return;
+            }
 
             fallingItems.forEach((item, index) => {
+                if (!item.element || !item.element.parentNode) {
+                    fallingItems.splice(index, 1);
+                    return;
+                }
+                
                 item.y += 3;
                 item.element.style.top = item.y + 'px';
 
@@ -501,7 +538,6 @@
                     rabbitRect.top < itemRect.bottom &&
                     rabbitRect.bottom > itemRect.top) {
                     
-                    // 碰撞發生
                     if (item.type === 'mooncake') {
                         score++;
                         playSound('success');
@@ -514,23 +550,21 @@
                     item.element.remove();
                     fallingItems.splice(index, 1);
 
-                    // 檢查勝利條件
                     if (score >= 15) {
                         endGame(true);
                     }
                 }
 
-                // 移除超出畫面的物品
                 if (item.y > window.innerHeight) {
                     item.element.remove();
                     fallingItems.splice(index, 1);
                 }
             });
 
-            requestAnimationFrame(gameLoop);
+            animationId = requestAnimationFrame(gameLoop);
         }
 
-        // 簡單音效（使用 Web Audio API）
+        // 音效
         function playSound(type) {
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -554,7 +588,7 @@
                     oscillator.stop(audioContext.currentTime + 0.3);
                 }
             } catch (e) {
-                // 音效失敗時靜默處理
+                console.log('音效播放失敗');
             }
         }
 
@@ -563,6 +597,9 @@
             gameRunning = false;
             clearInterval(timerInterval);
             clearInterval(spawnInterval);
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
 
             if (won) {
                 resultTitle.textContent = '🎉 太棒啦！';
@@ -590,15 +627,16 @@
             
             rabbitX += deltaX;
             
-            // 邊界限制
             if (rabbitX < 0) rabbitX = 0;
             if (rabbitX > window.innerWidth - 50) rabbitX = window.innerWidth - 50;
             
-            rabbit.style.left = rabbitX + 'px';
+            if (rabbit) {
+                rabbit.style.left = rabbitX + 'px';
+            }
             touchStartX = touchX;
         });
 
-        // 電腦滑鼠控制（測試用）
+        // 電腦滑鼠控制
         let mouseDown = false;
         canvas.addEventListener('mousedown', (e) => {
             if (!gameRunning) return;
@@ -615,7 +653,9 @@
             if (rabbitX < 0) rabbitX = 0;
             if (rabbitX > window.innerWidth - 50) rabbitX = window.innerWidth - 50;
             
-            rabbit.style.left = rabbitX + 'px';
+            if (rabbit) {
+                rabbit.style.left = rabbitX + 'px';
+            }
             touchStartX = e.clientX;
         });
 
@@ -632,8 +672,6 @@
 
         // 初始化
         createStars();
-        gameLoop();
     </script>
 </body>
 </html>
-新增遊戲檔案

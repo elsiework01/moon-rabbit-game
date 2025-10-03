@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>月兔接月餅</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            touch-action: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(to bottom, #1a1a3e 0%, #2d1b4e 50%, #4a2d5f 100%);
+            position: relative;
+        }
+
+        .moon {
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle at 30% 30%, #fff9e6, #f0e68c);
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(255, 255, 200, 0.8);
+            z-index: 1;
+        }
+
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        #gameInfo {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+
+        .rabbit {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            transition: left 0.1s linear;
+            z-index: 5;
+        }
+
+        .rabbit-body {
+            width: 35px;
+            height: 35px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 0;
+            left: 7.5px;
+        }
+
+        .rabbit-ear {
+            width: 8px;
+            height: 25px;
+            background: white;
+            border-radius: 10px 10px 0 0;
+            position: absolute;
+            top: -5px;
+        }
+
+        .rabbit-ear.left {
+            left: 10px;
+            transform: rotate(-15deg);
+        }
+
+        .rabbit-ear.right {
+            right: 10px;
+            transform: rotate(15deg);
+        }
+
+        .rabbit-face {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .rabbit-eye {
+            width: 4px;
+            height: 4px;
+            background: #333;
+            border-radius: 50%;
+            position: absolute;
+            top: 5px;
+        }
+
+        .rabbit-eye.left {
+            left: 8px;
+        }
+
+        .rabbit-eye.right {
+            right: 8px;
+        }
+
+        .rabbit-nose {
+            width: 3px;
+            height: 3px;
+            background: #ff69b4;
+            border-radius: 50%;
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .falling-item {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            z-index: 3;
+        }
+
+        .mooncake {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #d4a574 0%, #c4954c 100%);
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .mooncake::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 25px;
+            height: 25px;
+            border: 2px solid #8b6f47;
+            border-radius: 50%;
+        }
+
+        .mooncake::after {
+            content: '月';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #8b6f47;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .rock {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #808080 0%, #606060 100%);
+            border-radius: 40% 35% 45% 38%;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .rock::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 12px;
+            width: 8px;
+            height: 8px;
+            background: #555;
+            border-radius: 50%;
+        }
+
+        .rock::after {
+            content: '';
+            position: absolute;
+            bottom: 12px;
+            right: 10px;
+            width: 6px;
+            height: 6px;
+            background: #666;
+            border-radius: 50%;
+        }
+
+        #gameOver {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+            border: 3px solid #ffd700;
+            max-width: 90%;
+        }
+
+        #gameOver h2 {
+            color: #ffd700;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        #gameOver p {
+            color: white;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        #restartBtn {
+            background: linear-gradient(to bottom, #ffd700, #ffb700);
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            color: #1a1a3e;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        #restartBtn:active {
+            transform: scale(0.95);
+        }
+
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #1a1a3e, #2d1b4e);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        #startScreen h1 {
+            color: #ffd700;
+            font-size: 42px;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+        }
+
+        #startBtn {
+            background: linear-gradient(to bottom, #ffd700, #ffb700);
+            border: none;
+            padding: 20px 60px;
+            font-size: 24px;
+            color: #1a1a3e;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        #startBtn:active {
+            transform: scale(0.95);
+        }
+
+        .instruction {
+            color: white;
+            font-size: 16px;
+            margin-top: 30px;
+            text-align: center;
+            padding: 0 20px;
+            line-height: 1.8;
+        }
+
+        .title-icon {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            vertical-align: middle;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <h1>月兔接月餅</h1>
+        <button id="startBtn">開始遊戲</button>
+        <div class="instruction">
+            <p>📱 左右滑動螢幕控制月兔移動</p>
+            <p>🎯 接住月餅 +1 分</p>
+            <p>⚠️ 避開石頭 -1 分</p>
+            <p>🏆 目標：60秒內達到 15 分！</p>
+        </div>
+    </div>
+
+    <div id="gameCanvas">
+        <div class="moon"></div>
+        <div class="stars" id="stars"></div>
+        
+        <div id="gameInfo">
+            <div>分數：<span id="score">0</span> / 15</div>
+            <div>時間：<span id="timer">60</span>秒</div>
+        </div>
+
+        <div id="gameOver">
+            <h2 id="resultTitle"></h2>
+            <p id="resultMessage"></p>
+            <button id="restartBtn">再來一次</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const gameOverEl = document.getElementById('gameOver');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultMessage = document.getElementById('resultMessage');
+        const restartBtn = document.getElementById('restartBtn');
+        const startScreen = document.getElementById('startScreen');
+        const startBtn = document.getElementById('startBtn');
+
+        let score = 0;
+        let timeLeft = 60;
+        let gameRunning = false;
+        let timerInterval;
+        let spawnInterval;
+        let rabbit;
+        let rabbitX;
+        let touchStartX = 0;
+        let fallingItems = [];
+
+        // 創建星星背景
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // 創建兔子
+        function createRabbit() {
+            const rabbitDiv = document.createElement('div');
+            rabbitDiv.className = 'rabbit';
+            
+            rabbitDiv.innerHTML = `
+                <div class="rabbit-ear left"></div>
+                <div class="rabbit-ear right"></div>
+                <div class="rabbit-body">
+                    <div class="rabbit-face">
+                        <div class="rabbit-eye left"></div>
+                        <div class="rabbit-eye right"></div>
+                        <div class="rabbit-nose"></div>
+                    </div>
+                </div>
+            `;
+            
+            return rabbitDiv;
+        }
+
+        // 初始化遊戲
+        function initGame() {
+            score = 0;
+            timeLeft = 60;
+            scoreEl.textContent = score;
+            timerEl.textContent = timeLeft;
+            gameOverEl.style.display = 'none';
+            
+            // 清除所有掉落物
+            fallingItems.forEach(item => item.element.remove());
+            fallingItems = [];
+
+            // 創建或重置兔子
+            if (!rabbit) {
+                rabbit = createRabbit();
+                canvas.appendChild(rabbit);
+            }
+            
+            rabbitX = window.innerWidth / 2 - 25;
+            rabbit.style.left = rabbitX + 'px';
+            rabbit.style.bottom = '20px';
+        }
+
+        // 開始遊戲
+        function startGame() {
+            startScreen.style.display = 'none';
+            gameRunning = true;
+            initGame();
+
+            // 計時器
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    endGame(false);
+                }
+            }, 1000);
+
+            // 生成掉落物
+            spawnInterval = setInterval(spawnItem, 800);
+        }
+
+        // 生成掉落物
+        function spawnItem() {
+            if (!gameRunning) return;
+
+            const item = document.createElement('div');
+            item.className = 'falling-item';
+            
+            const isMooncake = Math.random() > 0.3; // 70% 月餅，30% 石頭
+            
+            if (isMooncake) {
+                const mooncake = document.createElement('div');
+                mooncake.className = 'mooncake';
+                item.appendChild(mooncake);
+                item.dataset.type = 'mooncake';
+            } else {
+                const rock = document.createElement('div');
+                rock.className = 'rock';
+                item.appendChild(rock);
+                item.dataset.type = 'rock';
+            }
+            
+            const x = Math.random() * (window.innerWidth - 40);
+            item.style.left = x + 'px';
+            item.style.top = '-40px';
+            
+            canvas.appendChild(item);
+            
+            const itemObj = {
+                element: item,
+                x: x,
+                y: -40,
+                type: item.dataset.type
+            };
+            
+            fallingItems.push(itemObj);
+        }
+
+        // 遊戲循環
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            fallingItems.forEach((item, index) => {
+                item.y += 3;
+                item.element.style.top = item.y + 'px';
+
+                // 檢查碰撞
+                const rabbitRect = {
+                    left: rabbitX,
+                    right: rabbitX + 50,
+                    top: window.innerHeight - 70,
+                    bottom: window.innerHeight - 20
+                };
+
+                const itemRect = {
+                    left: item.x,
+                    right: item.x + 40,
+                    top: item.y,
+                    bottom: item.y + 40
+                };
+
+                if (rabbitRect.left < itemRect.right &&
+                    rabbitRect.right > itemRect.left &&
+                    rabbitRect.top < itemRect.bottom &&
+                    rabbitRect.bottom > itemRect.top) {
+                    
+                    // 碰撞發生
+                    if (item.type === 'mooncake') {
+                        score++;
+                        playSound('success');
+                    } else {
+                        score--;
+                        playSound('fail');
+                    }
+                    
+                    scoreEl.textContent = score;
+                    item.element.remove();
+                    fallingItems.splice(index, 1);
+
+                    // 檢查勝利條件
+                    if (score >= 15) {
+                        endGame(true);
+                    }
+                }
+
+                // 移除超出畫面的物品
+                if (item.y > window.innerHeight) {
+                    item.element.remove();
+                    fallingItems.splice(index, 1);
+                }
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 簡單音效（使用 Web Audio API）
+        function playSound(type) {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                if (type === 'success') {
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                } else {
+                    oscillator.frequency.value = 200;
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                }
+            } catch (e) {
+                // 音效失敗時靜默處理
+            }
+        }
+
+        // 結束遊戲
+        function endGame(won) {
+            gameRunning = false;
+            clearInterval(timerInterval);
+            clearInterval(spawnInterval);
+
+            if (won) {
+                resultTitle.textContent = '🎉 太棒啦！';
+                resultMessage.innerHTML = '快截圖回傳 LINE 客服<br>享常年會員『半價』優惠！';
+            } else {
+                resultTitle.textContent = '😢 失敗！';
+                resultMessage.textContent = '再來一次，讓月兔吃飽飽吧！';
+            }
+
+            gameOverEl.style.display = 'block';
+        }
+
+        // 觸控控制
+        canvas.addEventListener('touchstart', (e) => {
+            if (!gameRunning) return;
+            touchStartX = e.touches[0].clientX;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!gameRunning) return;
+            e.preventDefault();
+            
+            const touchX = e.touches[0].clientX;
+            const deltaX = touchX - touchStartX;
+            
+            rabbitX += deltaX;
+            
+            // 邊界限制
+            if (rabbitX < 0) rabbitX = 0;
+            if (rabbitX > window.innerWidth - 50) rabbitX = window.innerWidth - 50;
+            
+            rabbit.style.left = rabbitX + 'px';
+            touchStartX = touchX;
+        });
+
+        // 電腦滑鼠控制（測試用）
+        let mouseDown = false;
+        canvas.addEventListener('mousedown', (e) => {
+            if (!gameRunning) return;
+            mouseDown = true;
+            touchStartX = e.clientX;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameRunning || !mouseDown) return;
+            
+            const deltaX = e.clientX - touchStartX;
+            rabbitX += deltaX;
+            
+            if (rabbitX < 0) rabbitX = 0;
+            if (rabbitX > window.innerWidth - 50) rabbitX = window.innerWidth - 50;
+            
+            rabbit.style.left = rabbitX + 'px';
+            touchStartX = e.clientX;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            mouseDown = false;
+        });
+
+        // 按鈕事件
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', () => {
+            gameOverEl.style.display = 'none';
+            startGame();
+        });
+
+        // 初始化
+        createStars();
+        gameLoop();
+    </script>
+</body>
+</html>
+新增遊戲檔案
